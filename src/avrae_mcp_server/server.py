@@ -8,6 +8,7 @@ from datetime import timezone
 from typing import Any
 
 import discord
+from discord import Permissions
 import structlog
 from mcp.server.fastmcp import FastMCP
 
@@ -89,6 +90,22 @@ TOP_LEVEL_COMMANDS: tuple[tuple[str, tuple[str, ...]], ...] = (
 
 class DiscordConnectionError(RuntimeError):
     """Raised when Discord operations cannot be completed."""
+
+
+
+
+def build_creator_install_url(application_id: int) -> str:
+    """Build a public Discord OAuth2 URL that allows the creator to install the bot."""
+
+    return discord.utils.oauth_url(
+        client_id=application_id,
+        permissions=Permissions(
+            send_messages=True,
+            read_message_history=True,
+            view_channel=True,
+        ),
+        scopes=("bot", "applications.commands"),
+    )
 
 
 def configure_logging(level: str) -> None:
@@ -207,13 +224,23 @@ def create_server(settings: Settings, lifecycle: DiscordLifecycle | None = None,
         await lifecycle.stop()
         return {"status": "stopped"}
 
+    @mcp.tool()
+    async def creator_install_url() -> dict[str, str]:
+        """Return a public Discord OAuth2 URL that the app creator can use to install this bot."""
+
+        application_id = settings.discord_application_id
+        if not application_id:
+            raise ValueError("DISCORD_APPLICATION_ID is required to generate an install URL")
+
+        return {"install_url": build_creator_install_url(application_id)}
+
     def normalize_tool_name(command: str) -> str:
         normalized = command.replace("-", "_").replace(" ", "_")
         if not normalized.isidentifier():
             normalized = f"command_{normalized}"
         return f"avrae_{normalized}"
 
-    registered_tools = ["healthcheck", "avrae_command", "shutdown_discord"]
+    registered_tools = ["healthcheck", "avrae_command", "shutdown_discord", "creator_install_url"]
 
     for command, aliases in TOP_LEVEL_COMMANDS:
         async def command_tool(args: str = "", context: dict[str, Any] | None = None, _command: str = command) -> dict[str, Any]:
