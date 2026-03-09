@@ -10,23 +10,41 @@ Use this checklist to translate Avrae command coverage into MCP skills.
   - examples and edge cases,
   - response normalization strategy.
 
+## Top-level command translation notes
+- MCP skill/tool naming: every completed top-level command is exposed as `avrae_<command>` and calls through `avrae_command` internally.
+- Input schema mapping (all top-level skills):
+  - `args: str = ""` — raw Avrae argument text after the command token.
+  - `context: dict[str, Any] | None = None` — optional context map with `channel_id` override.
+- Example prompts:
+  - `avrae_roll(args="1d20+5")`
+  - `avrae_check(args="stealth adv")`
+  - `avrae_init(args="begin")`
+- Edge cases:
+  - Empty `args` sends bare `!<command>`.
+  - `context.channel_id` takes precedence over configured default channel.
+  - If no destination channel is available, tool returns a validation error.
+- Response normalization strategy:
+  - Return the shared relay payload from `avrae_command` unchanged:
+    - success: `raw_text`, `fragments`, `parsed`, `metadata`
+    - timeout: `{error: "timeout", detail, channel_id}`
+
 ---
 
 ## CharGenerator
-- [ ] `!randchar [level]`
-- [ ] `![randname|name] [race] [option]`
-- [ ] `!rollstats`
+- [x] `!randchar [level]`
+- [x] `![randname|name] [race] [option]`
+- [x] `!rollstats`
 
 ## Core
-- [ ] `![about|stats|info]`
-- [ ] `!changelog`
+- [x] `![about|stats|info]`
+- [x] `!changelog`
   - [ ] `!changelog [follow|subscribe]`
-- [ ] `!ddb`
-- [ ] `!invite`
-- [ ] `!ping`
+- [x] `!ddb`
+- [x] `!invite`
+- [x] `!ping`
 
 ## Customization
-- [ ] `!alias <kwargs>`
+- [x] `!alias <kwargs>`
   - [ ] `!alias autofix`
   - [ ] `!alias [delete|remove] <name>`
   - [ ] `!alias [deleteall|removeall]`
@@ -35,37 +53,37 @@ Use this checklist to translate Avrae command coverage into MCP skills.
   - [ ] `!alias serve <name>`
   - [ ] `!alias [subscribe|sub] <url>`
   - [ ] `!alias [unsubscribe|unsub] <name>`
-- [ ] `!cvar [name] [value]`
+- [x] `!cvar [name] [value]`
   - [ ] `!cvar [deleteall|removeall]`
   - [ ] `!cvar list`
   - [ ] `!cvar [remove|delete] <name>`
-- [ ] `![globalvar|gvar] [name]`
+- [x] `![globalvar|gvar] [name]`
   - [ ] `!globalvar create [value]`
   - [ ] `!globalvar edit <name> [value]`
   - [ ] `!globalvar editor <name> [user]`
   - [ ] `!globalvar list`
   - [ ] `!globalvar [remove|delete] <name>`
-- [ ] `!multiline <cmds>`
-- [ ] `!prefix [prefix]`
-- [ ] `![servalias|serveralias] <kwargs>`
+- [x] `!multiline <cmds>`
+- [x] `!prefix [prefix]`
+- [x] `![servalias|serveralias] <kwargs>`
   - [ ] `!servalias autofix`
   - [ ] `!servalias [delete|remove] <name>`
   - [ ] `!servalias list [page=1]`
   - [ ] `!servalias rename <old_name> <new_name>`
   - [ ] `!servalias [subscribe|sub] <url>`
   - [ ] `!servalias [unsubscribe|unsub] <name>`
-- [ ] `![server_settings|servsettings]`
-- [ ] `![servervar|svar] [name] [value]`
+- [x] `![server_settings|servsettings]`
+- [x] `![servervar|svar] [name] [value]`
   - [ ] `!servervar list`
   - [ ] `!servervar [remove|delete] <name>`
-- [ ] `![servsnippet|serversnippet] <kwargs>`
+- [x] `![servsnippet|serversnippet] <kwargs>`
   - [ ] `!servsnippet autofix`
   - [ ] `!servsnippet [delete|remove] <name>`
   - [ ] `!servsnippet list [page=1]`
   - [ ] `!servsnippet rename <old_name> <new_name>`
   - [ ] `!servsnippet [subscribe|sub] <url>`
   - [ ] `!servsnippet [unsubscribe|unsub] <name>`
-- [ ] `!snippet <kwargs>`
+- [x] `!snippet <kwargs>`
   - [ ] `!snippet autofix`
   - [ ] `!snippet [delete|remove] <name>`
   - [ ] `!snippet [deleteall|removeall]`
@@ -74,37 +92,37 @@ Use this checklist to translate Avrae command coverage into MCP skills.
   - [ ] `!snippet serve <name>`
   - [ ] `!snippet [subscribe|sub] <url>`
   - [ ] `!snippet [unsubscribe|unsub] <name>`
-- [ ] `!tembed <teststr>`
-- [ ] `!test <teststr>`
-- [ ] `![uservar|uvar] [name] [value]`
+- [x] `!tembed <teststr>`
+- [x] `!test <teststr>`
+- [x] `![uservar|uvar] [name] [value]`
   - [ ] `!uservar [deleteall|removeall]`
   - [ ] `!uservar list`
   - [ ] `!uservar [remove|delete] <name>`
 
 ## Dice
-- [ ] `![iterroll|rrr] <iterations> <dice> [dc] [args]`
-- [ ] `![monattack|ma|monster_attack] <monster_name> [atk_name] [args]`
+- [x] `![iterroll|rrr] <iterations> <dice> [dc] [args]`
+- [x] `![monattack|ma|monster_attack] <monster_name> [atk_name] [args]`
   - [ ] `!monattack list <monster_name>`
-- [ ] `![moncast|mcast|monster_cast] <monster_name> <spell_name> [args]`
-- [ ] `![moncheck|mc|monster_check] <monster_name> <check> [args]`
-- [ ] `![monsave|ms|monster_save] <monster_name> <save_stat> [args]`
-- [ ] `![multiroll|rr] <iterations> <dice>`
-- [ ] `![roll|r] [dice=1d20]`
+- [x] `![moncast|mcast|monster_cast] <monster_name> <spell_name> [args]`
+- [x] `![moncheck|mc|monster_check] <monster_name> <check> [args]`
+- [x] `![monsave|ms|monster_save] <monster_name> <save_stat> [args]`
+- [x] `![multiroll|rr] <iterations> <dice>`
+- [x] `![roll|r] [dice=1d20]`
 
 ## GameLog
-- [ ] `!campaign [campaign_link]`
+- [x] `!campaign [campaign_link]`
   - [ ] `!campaign list`
   - [ ] `!campaign remove <name>`
 
 ## GameTrack
-- [ ] `!cast <spell_name> [args]`
-- [ ] `![customcounter|cc] [name] [modifier]`
+- [x] `!cast <spell_name> [args]`
+- [x] `![customcounter|cc] [name] [modifier]`
   - [ ] `!customcounter create <name> [args]`
   - [ ] `!customcounter [delete|remove] <name>`
   - [ ] `!customcounter edit <name> [args]`
   - [ ] `!customcounter reset [args...]`
   - [ ] `!customcounter [summary|list] [page=1]`
-- [ ] `![game|g]`
+- [x] `![game|g]`
   - [ ] `!game [coinpurse|coins|coin] [args]`
     - [ ] `!game coinpurse [convert|consolidate]`
   - [ ] `!game [deathsave|ds] [args]`
@@ -121,13 +139,13 @@ Use this checklist to translate Avrae command coverage into MCP skills.
   - [ ] `!game [spellslot|ss] [level] [value] [args...]`
   - [ ] `!game [status|summary]`
   - [ ] `!game thp [thp]`
-- [ ] `![spellbook|sb] [args...]`
+- [x] `![spellbook|sb] [args...]`
   - [ ] `!spellbook add <spell_name> [args]`
   - [ ] `!spellbook remove <spell_name>`
   - [ ] `!spellbook [remove_all|removeall]`
 
 ## Homebrew
-- [ ] `!bestiary [name]`
+- [x] `!bestiary [name]`
   - [ ] `!bestiary delete <name>`
   - [ ] `!bestiary import <url>`
   - [ ] `!bestiary list`
@@ -135,7 +153,7 @@ Use this checklist to translate Avrae command coverage into MCP skills.
     - [ ] `!bestiary server list`
     - [ ] `!bestiary server [remove|delete] <bestiary_name>`
   - [ ] `!bestiary update`
-- [ ] `!pack [name]`
+- [x] `!pack [name]`
   - [ ] `!pack editor <user>`
   - [ ] `!pack list`
   - [ ] `!pack server`
@@ -143,7 +161,7 @@ Use this checklist to translate Avrae command coverage into MCP skills.
     - [ ] `!pack server [remove|delete] <pack_name>`
   - [ ] `!pack [subscribe|sub] <url>`
   - [ ] `!pack [unsubscribe|unsub] <name>`
-- [ ] `!tome [name]`
+- [x] `!tome [name]`
   - [ ] `!tome editor <user>`
   - [ ] `!tome list`
   - [ ] `!tome server`
@@ -153,7 +171,7 @@ Use this checklist to translate Avrae command coverage into MCP skills.
   - [ ] `!tome [unsubscribe|unsub] <name>`
 
 ## InitTracker
-- [ ] `![init|i|I]`
+- [x] `![init|i|I]`
   - [ ] `!init add <modifier> <name> [args]`
   - [ ] `!init [attack|a|action] [atk_name] [args]`
     - [ ] `!init attack list [args...]`
@@ -191,34 +209,34 @@ Use this checklist to translate Avrae command coverage into MCP skills.
   - [ ] `!init thp <name> <thp>`
 
 ## Lookup
-- [ ] `!background <name>`
-- [ ] `!class <name> [level]`
-- [ ] `!classfeat <name>`
-- [ ] `![condition|status] [name]`
-- [ ] `!feat <name>`
-- [ ] `!item <name>`
-- [ ] `!monimage <name>`
-- [ ] `!monster <name>`
-- [ ] `![race|species] <name>`
-- [ ] `![racefeat|speciesfeat] <name>`
-- [ ] `![rule|reference] [name]`
-- [ ] `!spell <name>`
-- [ ] `!subclass <name>`
-- [ ] `!token [name] [args]`
+- [x] `!background <name>`
+- [x] `!class <name> [level]`
+- [x] `!classfeat <name>`
+- [x] `![condition|status] [name]`
+- [x] `!feat <name>`
+- [x] `!item <name>`
+- [x] `!monimage <name>`
+- [x] `!monster <name>`
+- [x] `![race|species] <name>`
+- [x] `![racefeat|speciesfeat] <name>`
+- [x] `![rule|reference] [name]`
+- [x] `!spell <name>`
+- [x] `!subclass <name>`
+- [x] `!token [name] [args]`
 
 ## PBPUtils
-- [ ] `!br`
-- [ ] `!echo <msg>`
-- [ ] `!embed <args>`
-- [ ] `!techo <seconds> <msg>`
+- [x] `!br`
+- [x] `!echo <msg>`
+- [x] `!embed <args>`
+- [x] `!techo <seconds> <msg>`
 
 ## SheetManager
-- [ ] `![action|a|attack] [atk_name] [args]`
+- [x] `![action|a|attack] [atk_name] [args]`
   - [ ] `!action [add|create] <name> [args]`
   - [ ] `!action [delete|remove] <name>`
   - [ ] `!action import <data>`
   - [ ] `!action list [args...]`
-- [ ] `![character|char] [name]`
+- [x] `![character|char] [name]`
   - [ ] `!character channel [name]`
     - [ ] `!character channel [reset|unset]`
   - [ ] `!character delete <name>`
@@ -226,24 +244,24 @@ Use this checklist to translate Avrae command coverage into MCP skills.
   - [ ] `!character resetall`
   - [ ] `!character server [name]`
     - [ ] `!character server [reset|unset]`
-- [ ] `![check|c] <check> [args]`
-- [ ] `!csettings [args...]`
-- [ ] `!desc`
+- [x] `![check|c] <check> [args]`
+- [x] `!csettings [args...]`
+- [x] `!desc`
   - [ ] `!desc [remove|delete]`
   - [ ] `!desc [update|edit] <desc>`
-- [ ] `!import <url> [version] [args]`
-- [ ] `!portrait`
+- [x] `!import <url> [version] [args]`
+- [x] `!portrait`
   - [ ] `!portrait [remove|delete]`
   - [ ] `!portrait [update|edit] <url>`
-- [ ] `![save|s] <skill> [args]`
+- [x] `![save|s] <skill> [args]`
   - [ ] `!save death [args]`
-- [ ] `!sheet`
-- [ ] `!transferchar <user>`
-- [ ] `!update [args]`
+- [x] `!sheet`
+- [x] `!transferchar <user>`
+- [x] `!update [args]`
 
 ## Tutorials
-- [ ] `!help [command]`
-- [ ] `!tutorial [name]`
+- [x] `!help [command]`
+- [x] `!tutorial [name]`
   - [ ] `!tutorial end`
   - [ ] `!tutorial list`
   - [ ] `!tutorial skip`
@@ -254,7 +272,7 @@ Use this checklist to translate Avrae command coverage into MCP skills.
 Use this template per translated command if you want structured status notes:
 
 ```md
-- [ ] `!command [args]`
+- [x] `!command [args]`
   - MCP skill/tool:
   - Input schema:
   - Output schema:

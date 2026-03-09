@@ -75,8 +75,83 @@ def test_create_server_registers_expected_tools(monkeypatch):
     relay = FakeRelay()
 
     server = server_module.create_server(settings=settings, lifecycle=lifecycle, relay=relay)
-    assert set(server.tools) == {"healthcheck", "avrae_command", "shutdown_discord"}
+    expected_core_tools = {"healthcheck", "avrae_command", "shutdown_discord"}
+    expected_command_tools = {
+        "avrae_randchar",
+        "avrae_randname",
+        "avrae_rollstats",
+        "avrae_about",
+        "avrae_changelog",
+        "avrae_ddb",
+        "avrae_invite",
+        "avrae_ping",
+        "avrae_alias",
+        "avrae_cvar",
+        "avrae_globalvar",
+        "avrae_multiline",
+        "avrae_prefix",
+        "avrae_servalias",
+        "avrae_server_settings",
+        "avrae_servervar",
+        "avrae_servsnippet",
+        "avrae_snippet",
+        "avrae_tembed",
+        "avrae_test",
+        "avrae_uservar",
+        "avrae_iterroll",
+        "avrae_monattack",
+        "avrae_moncast",
+        "avrae_moncheck",
+        "avrae_monsave",
+        "avrae_multiroll",
+        "avrae_roll",
+        "avrae_campaign",
+        "avrae_cast",
+        "avrae_customcounter",
+        "avrae_game",
+        "avrae_spellbook",
+        "avrae_bestiary",
+        "avrae_pack",
+        "avrae_tome",
+        "avrae_init",
+        "avrae_background",
+        "avrae_class",
+        "avrae_classfeat",
+        "avrae_condition",
+        "avrae_feat",
+        "avrae_item",
+        "avrae_monimage",
+        "avrae_monster",
+        "avrae_race",
+        "avrae_racefeat",
+        "avrae_rule",
+        "avrae_spell",
+        "avrae_subclass",
+        "avrae_token",
+        "avrae_br",
+        "avrae_echo",
+        "avrae_embed",
+        "avrae_techo",
+        "avrae_action",
+        "avrae_character",
+        "avrae_check",
+        "avrae_csettings",
+        "avrae_desc",
+        "avrae_import",
+        "avrae_portrait",
+        "avrae_save",
+        "avrae_sheet",
+        "avrae_transferchar",
+        "avrae_update",
+        "avrae_help",
+        "avrae_tutorial",
+    }
+    assert set(server.tools) == expected_core_tools | expected_command_tools
 
     result = asyncio.run(server.tools["avrae_command"]("roll", "1d20"))
     assert lifecycle.sent == [(100, "!roll 1d20")]
     assert result["metadata"]["channel_id"] == 100
+
+    command_result = asyncio.run(server.tools["avrae_roll"]("2d20kh1"))
+    assert lifecycle.sent[-1] == (100, "!roll 2d20kh1")
+    assert command_result["metadata"]["channel_id"] == 100

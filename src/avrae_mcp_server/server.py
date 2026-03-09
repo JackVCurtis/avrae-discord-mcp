@@ -15,6 +15,78 @@ from avrae_mcp_server.config import Settings
 from avrae_mcp_server.relay import AvraeRelay, AvraeTimeoutError
 
 
+TOP_LEVEL_COMMANDS: tuple[tuple[str, tuple[str, ...]], ...] = (
+    ("randchar", ()),
+    ("randname", ("name",)),
+    ("rollstats", ()),
+    ("about", ("stats", "info")),
+    ("changelog", ()),
+    ("ddb", ()),
+    ("invite", ()),
+    ("ping", ()),
+    ("alias", ()),
+    ("cvar", ()),
+    ("globalvar", ("gvar",)),
+    ("multiline", ()),
+    ("prefix", ()),
+    ("servalias", ("serveralias",)),
+    ("server_settings", ("servsettings",)),
+    ("servervar", ("svar",)),
+    ("servsnippet", ("serversnippet",)),
+    ("snippet", ()),
+    ("tembed", ()),
+    ("test", ()),
+    ("uservar", ("uvar",)),
+    ("iterroll", ("rrr",)),
+    ("monattack", ("ma", "monster_attack")),
+    ("moncast", ("mcast", "monster_cast")),
+    ("moncheck", ("mc", "monster_check")),
+    ("monsave", ("ms", "monster_save")),
+    ("multiroll", ("rr",)),
+    ("roll", ("r",)),
+    ("campaign", ()),
+    ("cast", ()),
+    ("customcounter", ("cc",)),
+    ("game", ("g",)),
+    ("spellbook", ("sb",)),
+    ("bestiary", ()),
+    ("pack", ()),
+    ("tome", ()),
+    ("init", ("i", "I")),
+    ("background", ()),
+    ("class", ()),
+    ("classfeat", ()),
+    ("condition", ("status",)),
+    ("feat", ()),
+    ("item", ()),
+    ("monimage", ()),
+    ("monster", ()),
+    ("race", ("species",)),
+    ("racefeat", ("speciesfeat",)),
+    ("rule", ("reference",)),
+    ("spell", ()),
+    ("subclass", ()),
+    ("token", ()),
+    ("br", ()),
+    ("echo", ()),
+    ("embed", ()),
+    ("techo", ()),
+    ("action", ("a", "attack")),
+    ("character", ("char",)),
+    ("check", ("c",)),
+    ("csettings", ()),
+    ("desc", ()),
+    ("import", ()),
+    ("portrait", ()),
+    ("save", ("s",)),
+    ("sheet", ()),
+    ("transferchar", ()),
+    ("update", ()),
+    ("help", ()),
+    ("tutorial", ()),
+)
+
+
 class DiscordConnectionError(RuntimeError):
     """Raised when Discord operations cannot be completed."""
 
@@ -135,7 +207,31 @@ def create_server(settings: Settings, lifecycle: DiscordLifecycle | None = None,
         await lifecycle.stop()
         return {"status": "stopped"}
 
-    log.info("mcp_tools_registered", tools=["healthcheck", "avrae_command", "shutdown_discord"])
+    def normalize_tool_name(command: str) -> str:
+        normalized = command.replace("-", "_").replace(" ", "_")
+        if not normalized.isidentifier():
+            normalized = f"command_{normalized}"
+        return f"avrae_{normalized}"
+
+    registered_tools = ["healthcheck", "avrae_command", "shutdown_discord"]
+
+    for command, aliases in TOP_LEVEL_COMMANDS:
+        async def command_tool(args: str = "", context: dict[str, Any] | None = None, _command: str = command) -> dict[str, Any]:
+            """Send a specific top-level Avrae command with optional raw argument text."""
+
+            return await avrae_command(command=_command, args=args, context=context)
+
+        command_tool.__name__ = normalize_tool_name(command)
+        alias_text = ", ".join(f"!{alias}" for alias in aliases)
+        command_tool.__doc__ = (
+            f"Shortcut for !{command}."
+            if not alias_text
+            else f"Shortcut for !{command} (aliases: {alias_text})."
+        )
+        mcp.tool()(command_tool)
+        registered_tools.append(command_tool.__name__)
+
+    log.info("mcp_tools_registered", tools=registered_tools)
     return mcp
 
 
