@@ -5,6 +5,7 @@ primary_region = "ord"
 builder = "paketobuildpacks/builder:base"
 
 [env]
+HOST = "0.0.0.0"
 PORT = "8080"
 MCP_TRANSPORT = "streamable-http"
 MCP_HOST = "0.0.0.0"
