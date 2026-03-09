@@ -98,3 +98,34 @@ python -m pip install --upgrade pip
 pip install -r requirements-dev.txt
 pytest
 ```
+
+
+## Public remote MCP deployment (API key protected)
+
+This server can run as a **remote MCP endpoint** over HTTP with bearer-token auth.
+
+### Environment variables
+
+- `MCP_TRANSPORT`: use `streamable-http` (or `sse`) for network transport. Defaults to `stdio`.
+- `MCP_HOST`: bind host (set `0.0.0.0` for public/container deployments). Defaults to `127.0.0.1`.
+- `MCP_PORT`: bind port. Defaults to `8000`.
+- `MCP_API_KEY`: shared API key required from clients as a bearer token.
+- `MCP_PUBLIC_BASE_URL`: public HTTPS base URL for your MCP service (required when `MCP_API_KEY` is set).
+
+### Example
+
+```bash
+export DISCORD_BOT_TOKEN=...
+export AVRAE_BOT_USER_ID=261302296103747584
+export DISCORD_DEFAULT_CHANNEL_ID=123456789012345678
+
+export MCP_TRANSPORT=streamable-http
+export MCP_HOST=0.0.0.0
+export MCP_PORT=8000
+export MCP_API_KEY=replace-with-long-random-secret
+export MCP_PUBLIC_BASE_URL=https://your-mcp.example.com
+
+avrae-mcp-server
+```
+
+With this configuration, clients must send `Authorization: Bearer <MCP_API_KEY>` when calling the MCP endpoint.
