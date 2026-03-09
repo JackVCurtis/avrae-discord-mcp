@@ -1,16 +1,31 @@
-from pydantic import Field
-from pydantic_settings import BaseSettings, SettingsConfigDict
+import os
 
 
-class Settings(BaseSettings):
+class Settings:
     """Application settings loaded from environment variables."""
 
-    model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8", extra="ignore")
+    def __init__(self) -> None:
+        self.discord_bot_token = self._require("DISCORD_BOT_TOKEN")
+        self.discord_guild_id = self._parse_optional_int("DISCORD_GUILD_ID")
+        self.discord_default_channel_id = self._parse_optional_int("DISCORD_DEFAULT_CHANNEL_ID")
+        self.mcp_server_name = os.getenv("MCP_SERVER_NAME", "avrae-discord-mcp")
+        self.mcp_server_version = os.getenv("MCP_SERVER_VERSION", "0.1.0")
+        self.log_level = os.getenv("LOG_LEVEL", "INFO")
 
-    discord_bot_token: str = Field(..., alias="DISCORD_BOT_TOKEN")
-    discord_guild_id: int | None = Field(default=None, alias="DISCORD_GUILD_ID")
-    discord_default_channel_id: int | None = Field(default=None, alias="DISCORD_DEFAULT_CHANNEL_ID")
+    @staticmethod
+    def _require(env_var: str) -> str:
+        value = os.getenv(env_var)
+        if not value:
+            raise ValueError(f"{env_var} is required")
+        return value
 
-    mcp_server_name: str = Field(default="avrae-discord-mcp", alias="MCP_SERVER_NAME")
-    mcp_server_version: str = Field(default="0.1.0", alias="MCP_SERVER_VERSION")
-    log_level: str = Field(default="INFO", alias="LOG_LEVEL")
+    @staticmethod
+    def _parse_optional_int(env_var: str) -> int | None:
+        value = os.getenv(env_var)
+        if value is None or value == "":
+            return None
+
+        try:
+            return int(value)
+        except ValueError as exc:
+            raise ValueError(f"{env_var} must be an integer") from exc
