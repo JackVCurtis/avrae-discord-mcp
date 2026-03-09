@@ -286,10 +286,10 @@ def create_server(settings: Settings, lifecycle: DiscordLifecycle | None = None,
     registered_tools = ["healthcheck", "avrae_command", "shutdown_discord", "creator_install_url"]
 
     for command, aliases in TOP_LEVEL_COMMANDS:
-        async def command_tool(args: str = "", context: dict[str, Any] | None = None, _command: str = command) -> dict[str, Any]:
+        async def command_tool(args: str = "", context: dict[str, Any] | None = None, command_name: str = command) -> dict[str, Any]:
             """Send a specific top-level Avrae command with optional raw argument text."""
 
-            return await avrae_command(command=_command, args=args, context=context)
+            return await avrae_command(command=command_name, args=args, context=context)
 
         command_tool.__name__ = normalize_tool_name(command)
         alias_text = ", ".join(f"!{alias}" for alias in aliases)
