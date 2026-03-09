@@ -225,7 +225,6 @@ class DiscordLifecycle:
 def create_server(settings: Settings, lifecycle: DiscordLifecycle | None = None, relay: AvraeRelay | None = None) -> FastMCP:
     mcp = FastMCP(
         name=settings.mcp_server_name,
-        version=settings.mcp_server_version,
         **_build_fastmcp_kwargs(settings),
     )
     relay = relay or AvraeRelay(
