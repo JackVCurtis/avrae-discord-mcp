@@ -28,3 +28,20 @@ def test_settings_parse_discord_application_id(monkeypatch):
     settings = Settings()
 
     assert settings.discord_application_id == 987654321
+
+def test_settings_load_public_mcp_options(monkeypatch):
+    monkeypatch.setenv("DISCORD_BOT_TOKEN", "token")
+    monkeypatch.setenv("AVRAE_BOT_USER_ID", "123")
+    monkeypatch.setenv("MCP_TRANSPORT", "streamable-http")
+    monkeypatch.setenv("MCP_HOST", "0.0.0.0")
+    monkeypatch.setenv("MCP_PORT", "9000")
+    monkeypatch.setenv("MCP_API_KEY", "secret")
+    monkeypatch.setenv("MCP_PUBLIC_BASE_URL", "https://mcp.example.com")
+
+    settings = Settings()
+
+    assert settings.mcp_transport == "streamable-http"
+    assert settings.mcp_host == "0.0.0.0"
+    assert settings.mcp_port == 9000
+    assert settings.mcp_api_key == "secret"
+    assert settings.mcp_public_base_url == "https://mcp.example.com"

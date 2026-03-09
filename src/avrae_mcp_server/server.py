@@ -10,6 +10,8 @@ from typing import Any
 import discord
 from discord import Permissions
 import structlog
+from mcp.server.auth.provider import AccessToken
+from mcp.server.auth.settings import AuthSettings
 from mcp.server.fastmcp import FastMCP
 
 from avrae_mcp_server.config import Settings
@@ -86,6 +88,44 @@ TOP_LEVEL_COMMANDS: tuple[tuple[str, tuple[str, ...]], ...] = (
     ("help", ()),
     ("tutorial", ()),
 )
+
+
+class ApiKeyTokenVerifier:
+    """Validate MCP bearer tokens against a single configured API key."""
+
+    def __init__(self, api_key: str):
+        self._api_key = api_key
+
+    async def verify_token(self, token: str) -> AccessToken | None:
+        if token != self._api_key:
+            return None
+
+        return AccessToken(
+            token=token,
+            client_id="api-key-client",
+            scopes=["mcp:access"],
+        )
+
+
+def _build_fastmcp_kwargs(settings: Settings) -> dict[str, Any]:
+    kwargs: dict[str, Any] = {
+        "host": settings.mcp_host,
+        "port": settings.mcp_port,
+    }
+
+    if settings.mcp_api_key:
+        if not settings.mcp_public_base_url:
+            raise ValueError("MCP_PUBLIC_BASE_URL is required when MCP_API_KEY is set")
+
+        public_base = settings.mcp_public_base_url.rstrip("/")
+        kwargs["token_verifier"] = ApiKeyTokenVerifier(settings.mcp_api_key)
+        kwargs["auth"] = AuthSettings(
+            issuer_url=f"{public_base}/",
+            resource_server_url=f"{public_base}/mcp",
+            required_scopes=["mcp:access"],
+        )
+
+    return kwargs
 
 
 class DiscordConnectionError(RuntimeError):
@@ -183,7 +223,11 @@ class DiscordLifecycle:
 
 
 def create_server(settings: Settings, lifecycle: DiscordLifecycle | None = None, relay: AvraeRelay | None = None) -> FastMCP:
-    mcp = FastMCP(name=settings.mcp_server_name, version=settings.mcp_server_version)
+    mcp = FastMCP(
+        name=settings.mcp_server_name,
+        version=settings.mcp_server_version,
+        **_build_fastmcp_kwargs(settings),
+    )
     relay = relay or AvraeRelay(
         avrae_bot_user_id=settings.avrae_bot_user_id,
         response_timeout_seconds=settings.response_timeout_seconds,
@@ -270,7 +314,7 @@ def main() -> None:
         log.info("mcp_server_boot", name=settings.mcp_server_name, version=settings.mcp_server_version)
 
         server = create_server(settings)
-        server.run()
+        server.run(transport=settings.mcp_transport)
     except Exception as exc:  # noqa: BLE001
         structlog.get_logger("avrae_mcp_server").exception("fatal_server_error", error=str(exc))
         raise

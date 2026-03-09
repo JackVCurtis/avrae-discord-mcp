@@ -1,3 +1,4 @@
+import pytest
 import asyncio
 import importlib
 import sys
@@ -5,10 +6,12 @@ from types import ModuleType, SimpleNamespace
 
 
 class FakeMCP:
-    def __init__(self, name: str, version: str):
+    def __init__(self, name: str, version: str, **kwargs):
         self.name = name
         self.version = version
         self.tools = {}
+        self.kwargs = kwargs
+        self.run_calls = []
 
     def tool(self):
         def decorator(func):
@@ -16,6 +19,9 @@ class FakeMCP:
             return func
 
         return decorator
+
+    def run(self, transport: str = "stdio", mount_path: str | None = None):
+        self.run_calls.append({"transport": transport, "mount_path": mount_path})
 
 
 class FakeLifecycle:
@@ -48,10 +54,32 @@ def _install_fake_dependencies() -> None:
     mcp_module = ModuleType("mcp")
     mcp_server_module = ModuleType("mcp.server")
     fastmcp_module = ModuleType("mcp.server.fastmcp")
+    auth_module = ModuleType("mcp.server.auth")
+    auth_provider_module = ModuleType("mcp.server.auth.provider")
+    auth_settings_module = ModuleType("mcp.server.auth.settings")
+
+    class AccessToken:
+        def __init__(self, *, token: str, client_id: str, scopes: list[str], expires_at=None, resource=None):
+            self.token = token
+            self.client_id = client_id
+            self.scopes = scopes
+            self.expires_at = expires_at
+            self.resource = resource
+
+    class AuthSettings:
+        def __init__(self, **kwargs):
+            self.kwargs = kwargs
+
     fastmcp_module.FastMCP = FakeMCP
+    auth_provider_module.AccessToken = AccessToken
+    auth_settings_module.AuthSettings = AuthSettings
+
     sys.modules["mcp"] = mcp_module
     sys.modules["mcp.server"] = mcp_server_module
     sys.modules["mcp.server.fastmcp"] = fastmcp_module
+    sys.modules["mcp.server.auth"] = auth_module
+    sys.modules["mcp.server.auth.provider"] = auth_provider_module
+    sys.modules["mcp.server.auth.settings"] = auth_settings_module
 
     structlog_module = ModuleType("structlog")
     structlog_module.get_logger = lambda *args, **kwargs: SimpleNamespace(info=lambda *a, **k: None, exception=lambda *a, **k: None)
@@ -161,3 +189,45 @@ def test_create_server_registers_expected_tools(monkeypatch):
 
     install_result = asyncio.run(server.tools["creator_install_url"]())
     assert install_result["install_url"].startswith("https://discord.com/oauth2/authorize?client_id=123456")
+
+def test_create_server_enables_api_key_verification_when_configured(monkeypatch):
+    _install_fake_dependencies()
+    server_module = importlib.import_module("avrae_mcp_server.server")
+    server_module = importlib.reload(server_module)
+
+    monkeypatch.setenv("DISCORD_BOT_TOKEN", "token")
+    monkeypatch.setenv("AVRAE_BOT_USER_ID", "42")
+    monkeypatch.setenv("MCP_API_KEY", "secret")
+    monkeypatch.setenv("MCP_PUBLIC_BASE_URL", "https://mcp.example.com")
+
+    from avrae_mcp_server.config import Settings
+
+    settings = Settings()
+    server = server_module.create_server(settings=settings, lifecycle=FakeLifecycle(), relay=FakeRelay())
+    token_verifier = server.kwargs["token_verifier"]
+
+    valid_token = asyncio.run(token_verifier.verify_token("secret"))
+    invalid_token = asyncio.run(token_verifier.verify_token("bad"))
+
+    assert valid_token is not None
+    assert valid_token.scopes == ["mcp:access"]
+    assert invalid_token is None
+
+
+
+def test_create_server_requires_public_base_url_with_api_key(monkeypatch):
+    _install_fake_dependencies()
+    server_module = importlib.import_module("avrae_mcp_server.server")
+    server_module = importlib.reload(server_module)
+
+    monkeypatch.setenv("DISCORD_BOT_TOKEN", "token")
+    monkeypatch.setenv("AVRAE_BOT_USER_ID", "42")
+    monkeypatch.setenv("MCP_API_KEY", "secret")
+    monkeypatch.delenv("MCP_PUBLIC_BASE_URL", raising=False)
+
+    from avrae_mcp_server.config import Settings
+
+    settings = Settings()
+
+    with pytest.raises(ValueError, match="MCP_PUBLIC_BASE_URL"):
+        server_module.create_server(settings=settings, lifecycle=FakeLifecycle(), relay=FakeRelay())
