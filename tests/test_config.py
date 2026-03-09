@@ -10,6 +10,7 @@ def test_settings_load_from_env(monkeypatch):
     assert settings.discord_bot_token == "token"
     assert settings.avrae_bot_user_id == 123
     assert settings.mcp_server_name == "avrae-discord-mcp"
+    assert settings.discord_application_id is None
 
 
 def test_settings_require_avrae_id(monkeypatch):
@@ -19,6 +20,14 @@ def test_settings_require_avrae_id(monkeypatch):
         Settings()
 
 
+def test_settings_parse_discord_application_id(monkeypatch):
+    monkeypatch.setenv("DISCORD_BOT_TOKEN", "token")
+    monkeypatch.setenv("AVRAE_BOT_USER_ID", "123")
+    monkeypatch.setenv("DISCORD_APPLICATION_ID", "987654321")
+
+    settings = Settings()
+
+    assert settings.discord_application_id == 987654321
 
 def test_settings_load_public_mcp_options(monkeypatch):
     monkeypatch.setenv("DISCORD_BOT_TOKEN", "token")

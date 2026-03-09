@@ -45,6 +45,7 @@ Optional future enhancement:
 Use local config/env vars for:
 
 - `DISCORD_BOT_TOKEN`
+- `DISCORD_APPLICATION_ID` (required if you want to generate a public creator install URL)
 - `AVRAE_BOT_USER_ID`
 - `DEFAULT_GUILD_ID`
 - `DEFAULT_CHANNEL_ID`
@@ -88,6 +89,11 @@ Return:
 - [ ] Avrae response is captured and returned to MCP caller.
 - [ ] Timeout and error responses are deterministic.
 - [ ] Unit + async integration tests pass locally.
+
+
+## Creator install URL
+
+If you set `DISCORD_APPLICATION_ID`, the MCP server exposes a `creator_install_url` tool that returns a public OAuth2 URL the creator can use to install the bot to a Discord server.
 
 ## Development setup
 

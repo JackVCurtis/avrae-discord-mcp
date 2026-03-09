@@ -47,6 +47,8 @@ def _install_fake_dependencies() -> None:
     discord_module.Intents = SimpleNamespace(default=lambda: SimpleNamespace(message_content=True))
     discord_module.Client = lambda intents=None: SimpleNamespace(event=lambda fn: fn, is_ready=lambda: True)
     discord_module.Message = object
+    discord_module.Permissions = lambda **kwargs: kwargs
+    discord_module.utils = SimpleNamespace(oauth_url=lambda client_id, permissions, scopes: f"https://discord.com/oauth2/authorize?client_id={client_id}&scope={'%20'.join(scopes)}")
     sys.modules["discord"] = discord_module
 
     mcp_module = ModuleType("mcp")
@@ -95,6 +97,7 @@ def test_create_server_registers_expected_tools(monkeypatch):
     monkeypatch.setenv("DISCORD_BOT_TOKEN", "token")
     monkeypatch.setenv("AVRAE_BOT_USER_ID", "42")
     monkeypatch.setenv("DISCORD_DEFAULT_CHANNEL_ID", "100")
+    monkeypatch.setenv("DISCORD_APPLICATION_ID", "123456")
 
     from avrae_mcp_server.config import Settings
 
@@ -103,7 +106,7 @@ def test_create_server_registers_expected_tools(monkeypatch):
     relay = FakeRelay()
 
     server = server_module.create_server(settings=settings, lifecycle=lifecycle, relay=relay)
-    expected_core_tools = {"healthcheck", "avrae_command", "shutdown_discord"}
+    expected_core_tools = {"healthcheck", "avrae_command", "shutdown_discord", "creator_install_url"}
     expected_command_tools = {
         "avrae_randchar",
         "avrae_randname",
@@ -184,6 +187,8 @@ def test_create_server_registers_expected_tools(monkeypatch):
     assert lifecycle.sent[-1] == (100, "!roll 2d20kh1")
     assert command_result["metadata"]["channel_id"] == 100
 
+    install_result = asyncio.run(server.tools["creator_install_url"]())
+    assert install_result["install_url"].startswith("https://discord.com/oauth2/authorize?client_id=123456")
 
 def test_create_server_enables_api_key_verification_when_configured(monkeypatch):
     _install_fake_dependencies()
