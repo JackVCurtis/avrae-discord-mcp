@@ -16,9 +16,11 @@ class Settings:
         self.mcp_server_name = os.getenv("MCP_SERVER_NAME", "avrae-discord-mcp")
         self.mcp_server_version = os.getenv("MCP_SERVER_VERSION", "0.1.0")
         self.log_level = os.getenv("LOG_LEVEL", "INFO")
-        self.mcp_transport = os.getenv("MCP_TRANSPORT", "stdio")
-        self.mcp_host = os.getenv("MCP_HOST", "127.0.0.1")
-        self.mcp_port = self._parse_optional_int("MCP_PORT") or 8000
+        platform_port = self._parse_optional_int("PORT")
+        default_transport = "streamable-http" if platform_port else "stdio"
+        self.mcp_transport = os.getenv("MCP_TRANSPORT", default_transport)
+        self.mcp_host = os.getenv("MCP_HOST", "0.0.0.0" if self.mcp_transport != "stdio" else "127.0.0.1")
+        self.mcp_port = self._parse_optional_int("MCP_PORT") or platform_port or 8000
         self.mcp_public_base_url = os.getenv("MCP_PUBLIC_BASE_URL")
         self.mcp_api_key = os.getenv("MCP_API_KEY")
 

@@ -45,3 +45,18 @@ def test_settings_load_public_mcp_options(monkeypatch):
     assert settings.mcp_port == 9000
     assert settings.mcp_api_key == "secret"
     assert settings.mcp_public_base_url == "https://mcp.example.com"
+
+
+def test_settings_default_to_http_transport_when_port_is_provided(monkeypatch):
+    monkeypatch.setenv("DISCORD_BOT_TOKEN", "token")
+    monkeypatch.setenv("AVRAE_BOT_USER_ID", "123")
+    monkeypatch.setenv("PORT", "8080")
+    monkeypatch.delenv("MCP_TRANSPORT", raising=False)
+    monkeypatch.delenv("MCP_HOST", raising=False)
+    monkeypatch.delenv("MCP_PORT", raising=False)
+
+    settings = Settings()
+
+    assert settings.mcp_transport == "streamable-http"
+    assert settings.mcp_host == "0.0.0.0"
+    assert settings.mcp_port == 8080
