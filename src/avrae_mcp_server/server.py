@@ -4,6 +4,7 @@ import asyncio
 import logging
 import sys
 from dataclasses import dataclass
+from datetime import timezone
 from typing import Any
 
 import discord
@@ -11,6 +12,7 @@ import structlog
 from mcp.server.fastmcp import FastMCP
 
 from avrae_mcp_server.config import Settings
+from avrae_mcp_server.relay import AvraeRelay, AvraeTimeoutError
 
 
 class DiscordConnectionError(RuntimeError):
@@ -40,6 +42,7 @@ def configure_logging(level: str) -> None:
 @dataclass
 class DiscordLifecycle:
     settings: Settings
+    relay: AvraeRelay
 
     def __post_init__(self) -> None:
         intents = discord.Intents.default()
@@ -47,6 +50,16 @@ class DiscordLifecycle:
         self.client = discord.Client(intents=intents)
         self._connect_task: asyncio.Task[Any] | None = None
         self.log = structlog.get_logger("discord_lifecycle")
+
+        @self.client.event
+        async def on_message(message: discord.Message) -> None:
+            self.relay.handle_discord_message(
+                author_id=message.author.id,
+                channel_id=message.channel.id,
+                content=message.content,
+                message_id=message.id,
+                created_at=message.created_at.astimezone(timezone.utc),
+            )
 
     async def start(self) -> None:
         if self.client.is_ready() or self._connect_task:
@@ -80,9 +93,14 @@ class DiscordLifecycle:
             raise DiscordConnectionError(f"Failed to send Discord message: {exc}") from exc
 
 
-def create_server(settings: Settings) -> FastMCP:
+def create_server(settings: Settings, lifecycle: DiscordLifecycle | None = None, relay: AvraeRelay | None = None) -> FastMCP:
     mcp = FastMCP(name=settings.mcp_server_name, version=settings.mcp_server_version)
-    lifecycle = DiscordLifecycle(settings)
+    relay = relay or AvraeRelay(
+        avrae_bot_user_id=settings.avrae_bot_user_id,
+        response_timeout_seconds=settings.response_timeout_seconds,
+        max_collected_messages=settings.max_collected_messages,
+    )
+    lifecycle = lifecycle or DiscordLifecycle(settings=settings, relay=relay)
     log = structlog.get_logger("avrae_mcp_server")
 
     @mcp.tool()
@@ -93,15 +111,22 @@ def create_server(settings: Settings) -> FastMCP:
         return {"status": status}
 
     @mcp.tool()
-    async def send_discord_message(content: str, channel_id: int | None = None) -> dict[str, str | int]:
-        """Send a message to a Discord channel through the puppet bot."""
+    async def avrae_command(command: str, args: str = "", context: dict[str, Any] | None = None) -> dict[str, Any]:
+        """Send an Avrae command and return correlated response payload."""
 
-        destination = channel_id or settings.discord_default_channel_id
+        destination = (context or {}).get("channel_id") or settings.discord_default_channel_id
         if not destination:
-            raise ValueError("No destination channel set; provide channel_id or DISCORD_DEFAULT_CHANNEL_ID")
+            raise ValueError("No destination channel set; provide context.channel_id or DISCORD_DEFAULT_CHANNEL_ID")
 
-        result = await lifecycle.send_message(destination, content)
-        return {"status": "ok", "channel_id": destination, "message": result}
+        try:
+            return await relay.execute(
+                send=lambda content: lifecycle.send_message(int(destination), content),
+                channel_id=int(destination),
+                command=command,
+                args=args,
+            )
+        except AvraeTimeoutError as exc:
+            return {"error": "timeout", "detail": str(exc), "channel_id": int(destination)}
 
     @mcp.tool()
     async def shutdown_discord() -> dict[str, str]:
@@ -110,7 +135,7 @@ def create_server(settings: Settings) -> FastMCP:
         await lifecycle.stop()
         return {"status": "stopped"}
 
-    log.info("mcp_tools_registered", tools=["healthcheck", "send_discord_message", "shutdown_discord"])
+    log.info("mcp_tools_registered", tools=["healthcheck", "avrae_command", "shutdown_discord"])
     return mcp
 
 
