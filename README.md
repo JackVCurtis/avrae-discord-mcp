@@ -88,3 +88,13 @@ Return:
 - [ ] Avrae response is captured and returned to MCP caller.
 - [ ] Timeout and error responses are deterministic.
 - [ ] Unit + async integration tests pass locally.
+
+## Development setup
+
+Install dependencies and run tests locally:
+
+```bash
+python -m pip install --upgrade pip
+pip install -r requirements-dev.txt
+pytest
+```
