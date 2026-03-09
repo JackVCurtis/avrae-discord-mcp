@@ -6,12 +6,15 @@ builder = "paketobuildpacks/builder:base"
 
 [env]
 PORT = "8080"
+MCP_TRANSPORT = "streamable-http"
+MCP_HOST = "0.0.0.0"
+MCP_PORT = "8080"
 
 [http_service]
 auto_start_machines = true
 auto_stop_machines = true
 force_https = true
-internal_port = 8_080
+internal_port = 8080
 min_machines_running = 0
 processes = [ "app" ]
 
